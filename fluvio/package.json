@@ -1,0 +1,31 @@
+{
+  "name": "fluvio",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "consumer": "npx ts-node consumer/index.ts",
+    "producer": "npx ts-node producer/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.14.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@fluvio/client": "^0.14.9",
+    "@google/generative-ai": "^0.24.0",
+    "@types/express": "^5.0.1",
+    "axios": "^1.8.4",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "multer": "^1.4.5-lts.2"
+  },
+  "description": ""
+}
