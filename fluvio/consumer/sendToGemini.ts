@@ -1,7 +1,10 @@
-import { GoogleGenerativeAI, GoogleGenerativeAIError } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import axios from "axios";
 
 // Get API key from environment variables only
 const geminiApiKey = "AIzaSyDwhdMFJMyAMtICw0iM6glHDCy0KPr0rl4";
+const imgurClientId = "a3b3214f69c42f1"; 
+
 if (!geminiApiKey) {
   throw new Error("Missing GEMINI_API_KEY environment variable");
 }
@@ -18,6 +21,36 @@ interface ErrorWithDetails {
   stack?: string;
 }
 
+async function uploadToImgur(base64Image: string): Promise<string> {
+  // Clean up base64 if it includes data URL prefix
+  const cleanBase64 = base64Image.replace(/^data:image\/[a-z]+;base64,/, '');
+  
+  try {
+    const response = await axios.post(
+      'https://api.imgur.com/3/image',
+      { image: cleanBase64, type: 'base64' },
+      { headers: { Authorization: `Client-ID ${imgurClientId}` } }
+    );
+    
+    console.log("Image uploaded to Imgur");
+    return response.data.data.link;
+  } catch (error) {
+    console.error("Imgur upload error:", error);
+    throw new Error("Failed to upload image to Imgur");
+  }
+}
+
+async function fetchImageAsBase64(imageUrl: string): Promise<string> {
+  try {
+    const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+    const base64 = Buffer.from(response.data, 'binary').toString('base64');
+    return base64;
+  } catch (error) {
+    console.error("Error fetching image:", error);
+    throw new Error("Failed to fetch image from URL");
+  }
+}
+
 export async function analyzeImage(base64Image: string): Promise<string> {
   try {
     // Clean up base64 if it includes data URL prefix
@@ -30,6 +63,13 @@ export async function analyzeImage(base64Image: string): Promise<string> {
       throw new Error("Invalid base64 image data");
     }
 
+    // Upload to Imgur first
+    const imageUrl = await uploadToImgur(cleanBase64);
+    console.log("Image URL:", imageUrl);
+    
+    // Fetch the image back as base64 to use with Gemini
+    // const imageBase64 = await fetchImageAsBase64(imageUrl);
+    
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     console.log("Model connected");
 
@@ -37,7 +77,8 @@ export async function analyzeImage(base64Image: string): Promise<string> {
       const result = await model.generateContent([
         {
           text: `
-You are given a base64-encoded image of a classroom. Analyze the image and return the following data in strict JSON format:
+Analyze this classroom image (${imageUrl}). Students in the image are in a classroom setting.
+Return the following data in strict JSON format:
 
 {
   "students": [
@@ -62,12 +103,6 @@ You are given a base64-encoded image of a classroom. Analyze the image and retur
 
 Return only JSON, with no explanations.
           `
-        },
-        {
-          inlineData: {
-            mimeType: "image/jpeg",
-            data: cleanBase64
-          }
         }
       ]);
 
@@ -80,7 +115,7 @@ Return only JSON, with no explanations.
       const err = apiError as ErrorWithDetails;
 
       if (err.status === 400) {
-        console.error("Bad Request. Check if your base64 image is properly formatted and not too large.");
+        console.error("Bad Request. Check if your prompt is properly formatted.");
       }
 
       // Log all error details
