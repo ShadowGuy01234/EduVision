@@ -1,5 +1,9 @@
 {
   "type": "module",
+  "scripts": {
+    "seed": "node seedScript.js",
+    "emulate": "firebase emulators:start"
+  },
   "dependencies": {
     "@firebase/firestore": "^4.7.10",
     "firebase": "^11.6.0",
